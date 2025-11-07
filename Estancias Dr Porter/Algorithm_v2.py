@@ -6,7 +6,10 @@ import copy
 import time
 #import multiprocessing as mp
 
-
+# Beltrami Coefficient on Z-dom.
+def nu(z):
+    return mu(cmath.exp(z))*cmath.exp(-2*1j*z.imag)
+#    return mu(z)
 
 # Update a triangle.
 def newW1(nup,z1,z2,z3,w1,w2,w3):
@@ -41,8 +44,6 @@ def drawmesh(w,N,M):
             plt.plot(wtemp.real,wtemp.imag, 'k-', lw=0.5)
     plt.show()
 
-
-
 def first_phase(z,w,N,M):
     sigma = np.zeros(((N-1)*M*2,3),dtype=complex)
     n = 0
@@ -50,14 +51,6 @@ def first_phase(z,w,N,M):
     for j in range(M):
       for k in range(N-1):
         if j % 2 == 0:
-          # Beltrami Coefficient of z-dom 
-          def mu(z):
-            return 0.0
-
-# Beltrami Coefficient on Z-dom.
-          def nu(z):
-            return mu(cmath.exp(z))*cmath.exp(-2*1j*z.imag)
-          
           w1t, w2t, w3t = newW1(nu(z[-1-j][k]),
                                z[-j][k],z[-j][k+1],z[-1-j][k],
                                w[-j][k],w[-j][k+1],w[-1-j][k])
@@ -73,16 +66,6 @@ def first_phase(z,w,N,M):
           sigma[n+(N-1)][2] = w3b
           n += 1
         else:
-          
-                    # Beltrami Coefficient of z-dom 
-          value = np.linspace(0.0,0.9,4)
-          print(value[k])
-          def mu(z):
-            return value[k]
-
-# Beltrami Coefficient on Z-dom.
-          def nu(z):
-            return mu(cmath.exp(z))*cmath.exp(-2*1j*z.imag)
           w1t, w2t, w3t = newW1(nu(z[-j][k]),
                                 z[-1-j][k],z[-1-j][k+1],z[-j][k],
                                 w[-1-j][k],w[-1-j][k+1],w[-j][k])
@@ -103,9 +86,10 @@ def first_phase(z,w,N,M):
         l += (N-1)*3
 
     return sigma
-
-
-
+  
+  # Beltrami Coefficient of z-dom
+def mu(z):
+    return .5
 
 def plot_triangles(triangles):
   edge_colors = ["black","red","blue"]
@@ -116,8 +100,9 @@ def plot_triangles(triangles):
         x_edge = [x[i], x[(i+1)%3]]
         y_edge = [y[i], y[(i+1)%3]]
         plt.plot(x_edge, y_edge, color=edge_colors[i%len(edge_colors)], linewidth=.9)
+
 # Input
-N,M =5,5
+N,M = 50,50
 
 # Initialize Z-Vertices and W-Vertices
 klist = range(N)
@@ -130,9 +115,193 @@ for j in jlist:
         z[j][k] = r*j + 2*math.pi*1j*(k+(j%2)/2.)/N
 w = copy.deepcopy(z)
 
+
+
 drawmesh(z,N,M)
 mesh_sigma = first_phase(z,w,N,M)
-
 plot_triangles(mesh_sigma)
 plt.gca().set_aspect("equal", adjustable="box")
+plt.grid()
 plt.show()
+
+
+
+# --------------------------- SECOND FASE ----------------------------
+# Organize mesh data
+
+mesh = {}
+
+n = 0
+m = N-1
+for j in range(0,M):
+    mesh[f"-{j+1}"] = []
+    for k in range(N-1):
+        mesh[f"-{j+1}"].append(mesh_sigma[k+n])    
+    mesh[f"+{j}"] = []
+    for k in range(N-1):
+        mesh[f"+{j}"].append(mesh_sigma[k+m])
+    n,m = (n + (N-1)*2, m + (N-1)*2)
+
+
+side_vectors = {}
+
+side_vectors[f"Vert-{1}"] = []
+for k in range(N-1):
+    side_vectors[f"Vert-{1}"].append(mesh[f"-{j}"][k][1]-mesh[f"-{j}"][k][0])
+
+for j in range(0,M+1):
+    if j % 2 == 0 and M % 2 == 1:
+        if j == 0:
+            side_vectors[f"Above+{j}"] = []
+            side_vectors[f"Below+{j}"] = []
+            for k in range(N-1):
+                side_vectors[f"Above+{j}"].append(mesh[f"+{j}"][k][1] - mesh[f"+{j}"][k][2])
+                side_vectors[f"Below+{j}"].append(mesh[f"+{j}"][k][0] - mesh[f"+{j}"][k][2])
+        else:
+            side_vectors[f"Above+{j}"] = []
+            side_vectors[f"Below+{j}"] = []
+            side_vectors[f"Above-{j}"] = []
+            side_vectors[f"Below-{j}"] = []
+            for k in range(N-1):
+                side_vectors[f"Above+{j}"].append(mesh[f"+{j}"][k][1] - mesh[f"+{j}"][k][2])
+                side_vectors[f"Below+{j}"].append(mesh[f"+{j}"][k][0] - mesh[f"+{j}"][k][2])
+                side_vectors[f"Above-{j}"].append(mesh[f"-{j}"][k][1] - mesh[f"-{j}"][k][2])
+                side_vectors[f"Below-{j}"].append(mesh[f"-{j}"][k][0] - mesh[f"-{j}"][k][2])
+    elif j % 2 == 0 and M % 2 == 0:
+        if j == 0:
+            side_vectors[f"Above+{j}"] = []
+            side_vectors[f"Below+{j}"] = []
+            for k in range(N-1):
+                side_vectors[f"Above+{j}"].append(mesh[f"+{j}"][k][1] - mesh[f"+{j}"][k][2])
+                side_vectors[f"Below+{j}"].append(mesh[f"+{j}"][k][0] - mesh[f"+{j}"][k][2])
+        else:
+            if j < M:
+                side_vectors[f"Above+{j}"] = []
+                side_vectors[f"Below+{j}"] = []
+                for k in range(N-1):
+                    side_vectors[f"Above+{j}"].append(mesh[f"+{j}"][k][1] - mesh[f"+{j}"][k][2])
+                    side_vectors[f"Below+{j}"].append(mesh[f"+{j}"][k][0] - mesh[f"+{j}"][k][2])
+            side_vectors[f"Above-{j}"] = []
+            side_vectors[f"Below-{j}"] = []
+            for k in range(N-1):
+                side_vectors[f"Above-{j}"].append(mesh[f"-{j}"][k][1] - mesh[f"-{j}"][k][2])
+                side_vectors[f"Below-{j}"].append(mesh[f"-{j}"][k][0] - mesh[f"-{j}"][k][2])      
+
+v = np.zeros((len(jlist),len(klist)),dtype=complex)
+v[0][0] = 0
+
+for j in range(0,-M-1,-1):
+    if j == 0:
+       for k in range(1,N):
+               v[j][k] = v[j][k-1] + 1j*(side_vectors["Vert-1"][k-1]).imag
+       v_top = v[j][N-1] + 1j*(side_vectors["Vert-1"][N-2]).imag
+       dV = v_top - v[0][0]
+
+    elif abs(j) % 2 == 1:
+        for k in range(0,N-1):
+            v[j][k] = 0.5*(v[j+1][k] + side_vectors[f"Above+{abs(j+1)}"][k] 
+                      + v[j+1][k+1] + side_vectors[f"Below+{abs(j+1)}"][k])
+        v[j][N-1] = 0.5*(v[j+1][N-1]+ side_vectors[f"Above+{abs(j+1)}"][0]
+                         + v_top + side_vectors[f"Below+{abs(j+1)}"][0])
+        v_bot = 0.5*(v[j+1][N-1] - dV + side_vectors[f"Above+{abs(j+1)}"][N-2]
+                     + v[j+1][0] + side_vectors[f"Below+{abs(j+1)}"][0])
+        dV = v[j][N-1] - v_bot
+
+    elif abs(j) % 2 == 0:
+        v[j][0] = 0.5*(v[j+1][0] - side_vectors[f"Below-{abs(j)}"][0]
+                       + v_bot - side_vectors[f"Above-{abs(j)}"][N-2])
+        for k in range(1,N):
+            v[j][k] = 0.5*(v[j+1][k-1] - side_vectors[f"Below-{abs(j)}"][k-1]
+                             + v[j+1][k] - side_vectors[f"Above-{abs(j)}"][k-1])
+        v_top = 0.5*(v[j+1][N-1] - side_vectors[f"Below-{abs(j)}"][0]
+                     + v[j+1][0] + dV - side_vectors[f"Above-{abs(j)}"][0])
+        dV = v_top - v[j][0]
+
+drawmesh(v,N,M)  
+
+def second_phase(mesh_triangle,N,M):
+    mesh = {}
+    n = 0
+    m = N-1
+    for j in range(0,M):
+        mesh[f"-{j+1}"] = []
+        for k in range(N-1):
+            mesh[f"-{j+1}"].append(mesh_sigma[k+n])    
+        mesh[f"+{j}"] = []
+        for k in range(N-1):
+            mesh[f"+{j}"].append(mesh_sigma[k+m])
+        n,m = (n + (N-1)*2, m + (N-1)*2)
+
+    side_vectors = {}
+
+    side_vectors[f"Vert-{1}"] = []
+    for k in range(N-1):
+        side_vectors[f"Vert-{1}"].append(mesh[f"-{j}"][k][1]-mesh[f"-{j}"][k][0])
+
+    for j in range(0,M+1):
+        if j % 2 == 0 and M % 2 == 1:
+            if j == 0:
+                side_vectors[f"Above+{j}"] = []
+                side_vectors[f"Below+{j}"] = []
+                for k in range(N-1):
+                    side_vectors[f"Above+{j}"].append(mesh[f"+{j}"][k][1] - mesh[f"+{j}"][k][2])
+                    side_vectors[f"Below+{j}"].append(mesh[f"+{j}"][k][0] - mesh[f"+{j}"][k][2])
+            else:
+                side_vectors[f"Above+{j}"] = []
+                side_vectors[f"Below+{j}"] = []
+                side_vectors[f"Above-{j}"] = []
+                side_vectors[f"Below-{j}"] = []
+                for k in range(N-1):
+                    side_vectors[f"Above+{j}"].append(mesh[f"+{j}"][k][1] - mesh[f"+{j}"][k][2])
+                    side_vectors[f"Below+{j}"].append(mesh[f"+{j}"][k][0] - mesh[f"+{j}"][k][2])
+                    side_vectors[f"Above-{j}"].append(mesh[f"-{j}"][k][1] - mesh[f"-{j}"][k][2])
+                    side_vectors[f"Below-{j}"].append(mesh[f"-{j}"][k][0] - mesh[f"-{j}"][k][2])
+        elif j % 2 == 0 and M % 2 == 0:
+            if j == 0:
+                side_vectors[f"Above+{j}"] = []
+                side_vectors[f"Below+{j}"] = []
+                for k in range(N-1):
+                    side_vectors[f"Above+{j}"].append(mesh[f"+{j}"][k][1] - mesh[f"+{j}"][k][2])
+                    side_vectors[f"Below+{j}"].append(mesh[f"+{j}"][k][0] - mesh[f"+{j}"][k][2])
+            else:
+                if j < M:
+                    side_vectors[f"Above+{j}"] = []
+                    side_vectors[f"Below+{j}"] = []
+                    for k in range(N-1):
+                        side_vectors[f"Above+{j}"].append(mesh[f"+{j}"][k][1] - mesh[f"+{j}"][k][2])
+                        side_vectors[f"Below+{j}"].append(mesh[f"+{j}"][k][0] - mesh[f"+{j}"][k][2])
+                side_vectors[f"Above-{j}"] = []
+                side_vectors[f"Below-{j}"] = []
+                for k in range(N-1):
+                    side_vectors[f"Above-{j}"].append(mesh[f"-{j}"][k][1] - mesh[f"-{j}"][k][2])
+                    side_vectors[f"Below-{j}"].append(mesh[f"-{j}"][k][0] - mesh[f"-{j}"][k][2])      
+
+    v = np.zeros((len(jlist),len(klist)),dtype=complex)
+    v[0][0] = 0
+
+    for j in range(0,-M-1,-1):
+        if j == 0:
+           for k in range(1,N):
+                   v[j][k] = v[j][k-1] + 1j*(side_vectors["Vert-1"][k-1]).imag
+           v_top = v[j][N-1] + 1j*(side_vectors["Vert-1"][N-2]).imag
+           dV = v_top - v[0][0]
+
+        elif abs(j) % 2 == 1:
+            for k in range(0,N-1):
+                v[j][k] = 0.5*(v[j+1][k] + side_vectors[f"Above+{abs(j+1)}"][k] 
+                      + v[j+1][k+1] + side_vectors[f"Below+{abs(j+1)}"][k])
+            v[j][N-1] = 0.5*(v[j+1][N-1]+ side_vectors[f"Above+{abs(j+1)}"][0]
+                         + v_top + side_vectors[f"Below+{abs(j+1)}"][0])
+            v_bot = 0.5*(v[j+1][N-1] - dV + side_vectors[f"Above+{abs(j+1)}"][N-2]
+                     + v[j+1][0] + side_vectors[f"Below+{abs(j+1)}"][0])
+            dV = v[j][N-1] - v_bot
+
+        elif abs(j) % 2 == 0:
+            v[j][0] = 0.5*(v[j+1][0] - side_vectors[f"Below-{abs(j)}"][0]
+                       + v_bot - side_vectors[f"Above-{abs(j)}"][N-2])
+            for k in range(1,N):
+                v[j][k] = 0.5*(v[j+1][k-1] - side_vectors[f"Below-{abs(j)}"][k-1]
+                             + v[j+1][k] - side_vectors[f"Above-{abs(j)}"][k-1])
+            v_top = 0.5*(v[j+1][N-1] - side_vectors[f"Below-{abs(j)}"][0]
+                     + v[j+1][0] + dV - side_vectors[f"Above-{abs(j)}"][0])
+            dV = v_top - v[j][0]

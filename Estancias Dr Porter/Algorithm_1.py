@@ -8,8 +8,8 @@ import time
 
 # Beltrami Coefficient on Z-dom.
 def nu(z):
-    return mu(cmath.exp(z))*cmath.exp(-2*1j*z.imag)
-
+#    return mu(cmath.exp(z))*cmath.exp(-2*1j*z.imag)
+    return mu(z)
 # Update a triangle.
 def newW1(nup,z1,z2,z3,w1,w2,w3):
     p=((z1-z3)/(z1-z2)+nup*(z1.conjugate()-z3.conjugate())/(z1.conjugate()-z2.conjugate()))/(1+nup)
@@ -86,6 +86,9 @@ def first_phase(z,w,N,M):
 
     return sigma
   
+ 
+  
+  
   # Beltrami Coefficient of z-dom
 def mu(z):
     return 0.5
@@ -100,7 +103,7 @@ def plot_triangles(triangles):
         y_edge = [y[i], y[(i+1)%3]]
         plt.plot(x_edge, y_edge, color=edge_colors[i%len(edge_colors)], linewidth=.9)
 # Input
-N,M =5,5
+N,M =50,50
 
 # Initialize Z-Vertices and W-Vertices
 klist = range(N)
@@ -113,9 +116,9 @@ for j in jlist:
         z[j][k] = r*j + 2*math.pi*1j*(k+(j%2)/2.)/N
 w = copy.deepcopy(z)
 
-drawmesh(z,N,M)
 mesh_sigma = first_phase(z,w,N,M)
 
 plot_triangles(mesh_sigma)
 plt.gca().set_aspect("equal", adjustable="box")
+plt.grid()
 plt.show()
